@@ -385,7 +385,7 @@ export default {
         self.curve.tension = .8
         self.curve.curveType = "catmullrom"
         self.curveLength = self.curve.getLength()
-        self.max_velocity = 0.03 / self.curveLength
+        self.max_velocity = 0.05 / self.curveLength
         //console.log(self.curve.getLength());
 
         // roller coaster geometry
@@ -640,7 +640,6 @@ export default {
     },
 
     tearDownCity() {
-      console.log(this.city);
       for( var i = this.city.children.length - 1; i >= 0; i--) {
          let obj = this.city.children[i];
          this.city.remove(obj);
@@ -750,16 +749,18 @@ export default {
           this.stop()
         }
 
-        if (this.framecounter % 25 == 0) {
-          let index = Math.min(Math.floor(this.progress * this.src_data.length), this.src_data.length - 1) || 0
+        if (this.framecounter % 20 == 0) {
           this.info.progress = d3.format(".2f")(this.progress)
-          this.info.price = d3.format(".2f")(this.src_data[index].price)
-          this.info.value = d3.format(".2f")(this.src_data[index].value)
-          this.info.inflated = d3.format(".2f")(this.src_data[index].inflated)
-          if (this.src_data[index].date) {
-            this.info.date = d3.timeFormat("%Y")(this.src_data[index].date)
-          } else {
-            this.info.date = this.src_data[index].Year
+          let index = Math.min(Math.floor(this.progress * this.src_data.length), this.src_data.length - 1)
+          if (index) {
+            this.info.price = d3.format(".2f")(this.src_data[index].price)
+            this.info.value = d3.format(".2f")(this.src_data[index].value)
+            this.info.inflated = d3.format(".2f")(this.src_data[index].inflated)
+            if (this.src_data[index].date) {
+              this.info.date = d3.timeFormat("%Y")(this.src_data[index].date)
+            } else {
+              this.info.date = this.src_data[index].Year
+            }
           }
         }
 
