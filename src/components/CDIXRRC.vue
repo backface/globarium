@@ -153,7 +153,7 @@ export default {
       startTime: 0,
       runtime: 0,
       fps: 0,
-      worldscale: 2,
+      worldscale: 2.5,
       dataLoaded: false,
       updatingData: false,
       buildingsLoaded: false,
@@ -207,6 +207,7 @@ export default {
           units: "ppm"
         },
         // TODO:
+        /*
         {
           id: 6,
           name: "Global mean temperature (1750 - 2021)",
@@ -215,6 +216,7 @@ export default {
           source: '<a href="https://berkeleyearth.org/data/">Berkeley Eearh </a>',
           units: "°C"
         },
+        */
         {
           id: 7,
           name: "Global mean temperature (1880 - 2020)",
@@ -225,7 +227,7 @@ export default {
         },
         {
           id: 9,
-          name: "Covid19 Cases / Austria",
+          name: "Covid19 Cases / Austria (2020 - 2021)",
           desc: "" ,
           file: "data/covid_cases_aut_20211121.csv",
           source: '<a href="https://ourworldindata.org/covid-cases">Our World in Data<a>',
@@ -375,29 +377,33 @@ export default {
         self.vectors = self.points.map((p, i) => {
           //console.log((i/self.points.length) * 30 * self.worldscale);
           // return new THREE.Vector3((i/track_length) * 50 * self.worldscale, 0.1 + p.y * 100, 0)
-          return new THREE.Vector3(i * self.worldscale, 0.1 + p.y * 100, 0)
+          return new THREE.Vector3(i * self.worldscale, 0.2 + p.y * 100, 0)
         })
 
         self.curve = new THREE.CatmullRomCurve3(self.vectors)
         self.curve.closed = false
-        self.curve.tension = .1
+        self.curve.tension = .8
+        self.curve.curveType = "catmullrom"
+        self.curveLength = self.curve.getLength()
+        self.max_velocity = 0.03 / self.curveLength
+        //console.log(self.curve.getLength());
 
         // roller coaster geometry
-  			let geometry = new RollerCoasterGeometry(self.curve, 1000)
+  			let geometry = new RollerCoasterGeometry(self.curve, self.curveLength * 10)
   			let material = new THREE.MeshPhongMaterial({ vertexColors: true })
   			self.rollerCoasterMesh = new THREE.Mesh(geometry, material)
         self.rollerCoasterMesh.position.y = 0.1;
   			self.scene.add(self.rollerCoasterMesh)
 
         // lifters
-  			geometry = new RollerCoasterLiftersGeometry( self.curve, 50 );
+  			geometry = new RollerCoasterLiftersGeometry( self.curve, self.curveLength / 2);
   			material = new THREE.MeshPhongMaterial();
   			self.rollerCoasterLifterMesh = new THREE.Mesh( geometry, material );
   			self.rollerCoasterLifterMesh.position.y = 0.1;
   			self.scene.add(self.rollerCoasterLifterMesh)
 
         // shadow
-  			geometry = new RollerCoasterShadowGeometry(self.curve, 500);
+  			geometry = new RollerCoasterShadowGeometry(self.curve, self.curveLength * 10);
   			material = new THREE.MeshBasicMaterial({
   				color: 0x111111, depthWrite: false, transparent: true,
           opacity: 0.5,
@@ -431,9 +437,9 @@ export default {
     setOverviewPosition () {
       const self = this
       self.train.position.x = (self.track_length * self.worldscale) / 2
-      self.train.position.y = self.track_length / 5
-      self.train.position.z = self.track_length * 2.5
-      self.train.lookAt(self.lookAt.copy(new THREE.Vector3((self.track_length * self.worldscale) / 2, 500, 10000)))
+      self.train.position.y = self.track_length / 12
+      self.train.position.z = self.track_length * self.worldscale * 1.2
+      self.train.lookAt(self.lookAt.copy(new THREE.Vector3((self.track_length * self.worldscale) / 2, 800, 10000)))
       if (self.vrUIcontainer) {
         self.vrUIcontainer.position.set( self.train.position.x, self.train.position.y + 0.9, self.train.position.z - 1.6);
         self.vrButtonStartContainer.position.set( self.train.position.x, self.train.position.y + 0.7, self.train.position.z - 1.6);
@@ -672,7 +678,7 @@ export default {
               mesh.scale.set(1, 0, 1)
               mesh.tween =  new Tween(mesh.scale)
                 .to({ x: 1, y: THREE.MathUtils.randFloat(0.1, 3), z: 1}, THREE.MathUtils.randInt(2000, 5000))
-                .delay(i * 250)
+                .delay(i * 450)
                 .easing(Easing.Elastic.Out)
                 .start()
             }
@@ -706,13 +712,14 @@ export default {
       this.renderer.setAnimationLoop(this.render);
     },
 
-    render() {
+    render () {
       this.renderer.clear();
 
       if (this.startTime === 0) {
         this.startTime = performance.now()
         this.framecounter = 0
       }
+
       const time = performance.now();
       const delta = time - this.prevTime;
 
@@ -727,8 +734,8 @@ export default {
           this.position.y += 0.2
           this.train.position.copy( this.position )
           this.tangent.copy( this.curve.getTangentAt( this.progress ) )
-          this.velocity -= this.tangent.y * 0.0001 * delta
-          this.velocity = Math.max( 0.0004, Math.min( 0.0004, this.velocity ) );
+          this.velocity -= this.tangent.y * (this.curveLength * 1) * delta
+          this.velocity = Math.max(this.max_velocity, Math.min(this.max_velocity, this.velocity ) );
           //velocity = 0.00008; // constant velocity
           this.train.lookAt( this.lookAt.copy( this.position ).sub( this.tangent ) );
         } else if (this.progress <= 1.05) {
@@ -744,7 +751,7 @@ export default {
         }
 
         if (this.framecounter % 25 == 0) {
-          let index = Math.min(Math.floor(this.progress * this.src_data.length), this.src_data.length - 1)
+          let index = Math.min(Math.floor(this.progress * this.src_data.length), this.src_data.length - 1) || 0
           this.info.progress = d3.format(".2f")(this.progress)
           this.info.price = d3.format(".2f")(this.src_data[index].price)
           this.info.value = d3.format(".2f")(this.src_data[index].value)
@@ -756,10 +763,12 @@ export default {
           }
         }
 
+      } else {
+        ThreeMeshUI.update();
+        this.checkVRButtonIntersections();
       }
+
       updateTweens()
-      ThreeMeshUI.update();
-      this.checkforButtons();
       this.renderer.render(this.scene, this.camera)
 
       this.fps = d3.format(".0f")((this.framecounter * 1000 ) / ( time - this.startTime))
@@ -921,7 +930,7 @@ export default {
     	this.objsToTest.push(buttonNext, buttonPrevious, buttonStart);
     },
 
-    checkforButtons() {
+    checkVRButtonIntersections () {
     	let intersect;
     	if ( this.renderer.xr.isPresenting ) {
     		this.vrControl.setFromController(0, this.raycaster.ray );
@@ -942,11 +951,13 @@ export default {
     		};
     	};
     	// Update non-targeted buttons state
-    	this.objsToTest.forEach( (obj)=> {
-    		if ( (!intersect || obj !== intersect.object) && obj.isUI ) {
-    			obj.setState( 'idle' );
-    		};
-    	});
+    	if (this.objsToTest) {
+          this.objsToTest.forEach( (obj)=> {
+      		if ( (!intersect || obj !== intersect.object) && obj.isUI ) {
+      			obj.setState('idle')
+      		}
+      	})
+      }
     },
 
     raycast() {
