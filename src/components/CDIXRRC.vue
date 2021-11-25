@@ -26,6 +26,9 @@
     </div>
     <div v-if="!isMoving" class="start">
       <div class="">
+        <h2>Coupled Data Intercomparison <br> Extented Reality Roller Coaster</h2>
+      </div>
+      <div class="">
         Choose Your Ride: <br>
         <br>
         <SelectBox v-if="selected_option" :options="options" :default="selected_option.id" @input="loadData" />
@@ -137,6 +140,8 @@ import FontImage from '../assets/T-Star-Regular.png';
 export default {
   data () {
     return {
+      title: "Coupled Data Intercomparison \nExtented Reality Roller Coaster",
+      hasVR: false,
       width: 0,
       height: 0,
       framecounter: 0,
@@ -255,6 +260,7 @@ export default {
     this.setupRenderer()
     this.setupScene()
     this.setupVR()
+    //this.setUpAudio()
 
     window.addEventListener('resize', this.onResize, false );
     this.onResize()
@@ -303,32 +309,50 @@ export default {
 
       // startup audo (just testing)
       //this.osc = new Tone.Oscillator(100, "sine").toDestination().start
-      const pingPong = new Tone.PingPongDelay("4n", 0.1).toDestination();
+      //const pingPong = new Tone.PingPongDelay("4n", 0.1).toDestination();
+      const vol = new Tone.Volume(-12).toDestination();
+      const crusher = new Tone.BitCrusher(2).connect(vol);
+      //const feedbackDelay = new Tone.FeedbackDelay("8n", 0.2).connect(crusher);
 
-      this.osc = new Tone.PWMOscillator(4,0.0).toDestination().start()
-      this.osc2 = new Tone.PWMOscillator(6, 0.0).connect(pingPong).start()
-      // this.setUpAudio()
+      //const freeverb = new Tone.Freeverb().toDestination();
+      //freeverb.dampening = 1000;
+      this.osc = new Tone.OmniOscillator(4, "pwm").connect(crusher).start();
+      //this.osc = new Tone.PWMOscillator(4,0.0).toDestination().start()
+
+      //this.osc = new Tone.OmniOscillator(4, "pwm").toDestination().start();
+
+      //this.osc2 = new Tone.PWMOscillator(6, 0.0).connect(pingPong).start()
+
 
       // start video (if not playing)
       this.$refs.video.play()
 
       // now let's go
-      this.progress = 0
+      this.progress = 0.95
       this.startTime = 0
       this.isMoving = true;
+      if (this.hasVR) {
+        this.scene.remove(this.vrUIcontainer)
+        this.scene.remove(this.vrButtonStartContainer)
+      }
     },
 
     stop() {
       let self = this
-
       // stop audio
-      //Tone.Transport.stop();
+      // Tone.Transport.stop();
       if (this.osc) this.osc.stop()
 
       // stop moving
       this.isMoving = false
       this.progress = 0
+
       this.tearDownCity()
+
+      if (this.hasVR) {
+        this.scene.add(this.vrUIcontainer)
+        this.scene.add(this.vrButtonStartContainer)
+      }
       this.setOverviewPosition()
     },
 
@@ -440,9 +464,10 @@ export default {
       self.train.position.y = self.track_length / 12
       self.train.position.z = self.track_length * self.worldscale * 1.2
       self.train.lookAt(self.lookAt.copy(new THREE.Vector3((self.track_length * self.worldscale) / 2, 800, 10000)))
-      if (self.vrUIcontainer) {
+      if (self.hasVR) {
         self.vrUIcontainer.position.set( self.train.position.x, self.train.position.y + 0.9, self.train.position.z - 1.6);
         self.vrButtonStartContainer.position.set( self.train.position.x, self.train.position.y + 0.7, self.train.position.z - 1.6);
+        self.vrTitle.position.set( self.train.position.x, self.train.position.y + 1.16, self.train.position.z - 1.6);
       }
     },
 
@@ -558,12 +583,13 @@ export default {
     setUpAudio() {
       let self = this
 
-      var mesh1 = new THREE.Mesh(
+      this.soundSphere = new THREE.Mesh(
         new THREE.SphereGeometry( 2, 32, 16 ),
         new THREE.MeshPhongMaterial( { color: 0xffaa00, flatShading: true, shininess: 0 } )
       )
-      mesh1.position.set( 10, 20, 10 );
-      this.scene.add(mesh1)
+      this.soundSphere.position.set( 10, 20, 10 );
+      //this.soundSphere.scale(1,1,1)
+      this.scene.add(this.soundSphere)
 
       /*
       const listener = new THREE.AudioListener();
@@ -578,6 +604,7 @@ export default {
 			mesh1.add( sound1 );
       */
 
+  /*
       const listener = new THREE.AudioListener();
       const sound1 = new THREE.PositionalAudio(listener);
       this.camera.add( listener );
@@ -588,19 +615,12 @@ export default {
 		// /	sound1.setNodeSource(this.osc);
 			sound1.setRefDistance( 1 );
 		//	sound1.setVolume( 0.5 );
-			mesh1.add( sound1 );
-
-      var mesh2 = new THREE.Mesh(
-        new THREE.SphereGeometry( 2, 32, 16 ),
-        new THREE.MeshPhongMaterial( { color: 0xffaa00, flatShading: true, shininess: 0 } )
-      )
-      mesh2.position.set( 10, 2, -50 );
-      this.scene.add(mesh2)
-      const listener2 = new THREE.AudioListener();
-      const sound2 = new THREE.PositionalAudio(listener2);
-      this.camera.add( listener2 );
+			this.soundSphere.add( sound1 );
+      */
 
 
+
+        /*
       Tone.setContext(sound2.context)
       const osc2 = new Tone.Oscillator(240, "sine").start()
       sound2.setNodeSource (osc2);
@@ -608,7 +628,7 @@ export default {
       sound2.setRefDistance( 1 );
       sound2.setVolume( 0.2 );
       mesh2.add( sound2 );
-
+      */
       //Tone.setContext(sound1.context)
       //this.osc = (new Tone.Oscillator(100, "sine")).toDestination().start()
 
@@ -690,16 +710,21 @@ export default {
     setupVR() {
       let self = this
       if ("xr" in window.navigator) {
-        this.renderer.xr.enabled = true;
-        this.vrControl = VRControl( this.renderer, this.camera, this.scene );
-	      this.scene.add( this.vrControl.controllerGrips[0], this.vrControl.controllers[0] );
-    	  this.vrControl.controllers[0].addEventListener('selectstart', () => { self.selectState = true } );
-    	  this.vrControl.controllers[0].addEventListener('selectend', () => { self.selectState = false } );
-        this.vrControl.controllers[1].addEventListener('selectstart', () => { self.selectState = true } );
-    	  this.vrControl.controllers[1].addEventListener('selectend', () => { self.selectState = false } );
-        this.train.add(this.vrControl.controllers[0])
-        this.train.add(this.vrControl.controllerGrips[0]);
-        this.makeVRUIPanel()
+        window.navigator.xr.isSessionSupported('immersive-vr').then((supported) => {
+          if (supported) {
+            self.hasVR = true
+            self.renderer.xr.enabled = true;
+            self.vrControl = VRControl( self.renderer, self.camera, self.scene );
+            self.scene.add( self.vrControl.controllerGrips[0], self.vrControl.controllers[0] );
+            self.vrControl.controllers[0].addEventListener('selectstart', () => { self.selectState = true } );
+            self.vrControl.controllers[0].addEventListener('selectend', () => { self.selectState = false } );
+            self.vrControl.controllers[1].addEventListener('selectstart', () => { self.selectState = true } );
+            self.vrControl.controllers[1].addEventListener('selectend', () => { self.selectState = false } );
+            self.train.add(self.vrControl.controllers[0])
+            self.train.add(self.vrControl.controllerGrips[0]);
+            self.makeVRUIPanel()
+          }
+        })
       } else {
         console.log('no webVR supported');
       }
@@ -726,9 +751,9 @@ export default {
         this.progress += this.velocity;
 
         if (this.progress <= 1 ) {
-          this.osc.frequency.value = this.position.y * 30
-          this.osc2.frequency.value = this.velocity * 20000
 
+          //this.osc2.frequency.value = this.velocity * 20000
+          this.osc.frequency.value = this.position.y * 40
           this.position.copy( this.curve.getPointAt( this.progress ) );
           this.position.y += 0.2
           this.train.position.copy( this.position )
@@ -736,11 +761,17 @@ export default {
           this.velocity -= this.tangent.y * (this.curveLength * 1) * delta
           this.velocity = Math.max(this.max_velocity, Math.min(this.max_velocity, this.velocity ) );
           //velocity = 0.00008; // constant velocity
+          this.velocity = this.max_velocity // fixed velocity
           this.train.lookAt( this.lookAt.copy( this.position ).sub( this.tangent ) );
+          //this.soundSphere.position.set( this.lookAt.x + 5 * this.tangent.x, this.lookAt.y + 5 * this.tangent.y, this.lookAt.z);
         } else if (this.progress <= 1.05) {
           this.position.x += 0.2
-          this.train.position.copy( this.position )
+          this.train.position.copy( this.position ).add( this.tangent )
           this.train.lookAt( this.lookAt.copy( this.position ).sub( this.tangent ) );
+          if (this.hasVR) {
+            this.vrFinText.rotation.copy(this.train.rotation)
+            this.vrFinText.position.set( this.position.x + 5 * (this.tangent.x), this.position.y + 5 * (this.tangent.y), this.position.z);
+          }
         }  else if (this.progress <= 1.1) {
           // do nothing
         } else if (this.progress) {
@@ -750,6 +781,7 @@ export default {
         }
 
         if (this.framecounter % 20 == 0) {
+
           this.info.progress = d3.format(".2f")(this.progress)
           let index = Math.min(Math.floor(this.progress * this.src_data.length), this.src_data.length - 1)
           if (index) {
@@ -802,7 +834,7 @@ export default {
         }
       }
       this.selected_option = this.options[index]
-      if (this.vrUIoption) {
+      if (this.hasVRthis.vrUIoption && this.vrUIoption) {
         this.vrUIoption.set({ content: String( this.selected_option.name_plain || this.selected_option.name ) })
       }
       this.loadCurve(this.selected_option.file)
@@ -832,14 +864,45 @@ export default {
     	// options Name
 
       this.vrUIoption = new ThreeMeshUI.Text({ content: "n/a" })
-      const title = new ThreeMeshUI.Block({
+      const name = new ThreeMeshUI.Block({
         height: 0.15,
         width: 1,
+        fontFamily: FontJSON,
+    		fontTexture: FontImage,
         justifyContent: "center",
         backgroundOpacity: 0
       });
+      name.add(this.vrUIoption);
 
-      title.add(this.vrUIoption);
+      const vrTitleText = new ThreeMeshUI.Text({ content: this.title })
+      this.vrTitle = new ThreeMeshUI.Block({
+        height: 0.2,
+        width: 1.2,
+        fontSize: 0.1,
+        fontFamily: FontJSON,
+    		fontTexture: FontImage,
+        justifyContent: "center",
+        backgroundOpacity: 0,
+        fontColor: new THREE.Color(0xffffff)
+      });
+      this.vrTitle.add(vrTitleText);
+      this.scene.add(this.vrTitle)
+
+      const vrFinText = new ThreeMeshUI.Text({
+        content: "Do not go gentle into that good night.\nRage, rage against the dying of the light."
+      })
+      this.vrFinText = new ThreeMeshUI.Block({
+        height: 0.4,
+        width: 1.8,
+        fontSize: 0.1,
+        fontFamily: FontJSON,
+    		fontTexture: FontImage,
+        justifyContent: "center",
+        backgroundOpacity: 0,
+        fontColor: new THREE.Color(0xffffff)
+      });
+      this.vrFinText.add(vrFinText);
+      this.scene.add(this.vrFinText)
 
       // BUTTONS
 
@@ -904,7 +967,7 @@ export default {
     	});
     	buttonPrevious.setupState( hoveredStateAttributes );
     	buttonPrevious.setupState( idleStateAttributes );
-      this.vrUIcontainer.add(buttonNext, title, buttonPrevious);
+      this.vrUIcontainer.add(buttonNext, name, buttonPrevious);
 
       // Start button
       this.vrButtonStartContainer = new ThreeMeshUI.Block({
@@ -925,11 +988,13 @@ export default {
     	});
     	buttonStart.setupState(hoveredStateAttributes);
     	buttonStart.setupState(idleStateAttributes);
+
       this.vrButtonStartContainer.add(buttonStart)
       this.scene.add(this.vrButtonStartContainer);
 
     	this.objsToTest.push(buttonNext, buttonPrevious, buttonStart);
     },
+
 
     checkVRButtonIntersections () {
     	let intersect;
