@@ -122,7 +122,6 @@ import cSpline from 'cardinal-spline'
 import { Easing, Tween, remove as removeTween, update as updateTweens } from '@tweenjs/tween.js';
 
 import { VRButton } from 'three/examples/jsm/webxr/VRButton.js';
-import { XRControllerModelFactory } from 'three/examples/jsm/webxr/XRControllerModelFactory.js'
 import ThreeMeshUI from 'three-mesh-ui';
 import VRControl from 'three-mesh-ui/examples/utils/VRControl.js';
 
@@ -158,7 +157,7 @@ export default {
       startTime: 0,
       runtime: 0,
       fps: 0,
-      worldscale: 2.5,
+      worldscale: 3,
       dataLoaded: false,
       updatingData: false,
       buildingsLoaded: false,
@@ -307,6 +306,14 @@ export default {
       this.tearDownCity()
       this.createCity(true)
 
+      /*
+      if (this.renderer.xr) {
+        if(this.renderer.xr.isPresenting ) {
+        // this.worldscale = 4
+        }
+      }
+      */
+
       // startup audo (just testing)
       //this.osc = new Tone.Oscillator(100, "sine").toDestination().start
       //const pingPong = new Tone.PingPongDelay("4n", 0.1).toDestination();
@@ -323,17 +330,18 @@ export default {
 
       //this.osc2 = new Tone.PWMOscillator(6, 0.0).connect(pingPong).start()
 
-
       // start video (if not playing)
       this.$refs.video.play()
 
       // now let's go
-      this.progress = 0.95
+      this.progress = 0
       this.startTime = 0
       this.isMoving = true;
       if (this.hasVR) {
         this.scene.remove(this.vrUIcontainer)
         this.scene.remove(this.vrButtonStartContainer)
+        this.scene.add(this.vrFinText)
+        this.vrFinText.position.x = 10000
       }
     },
 
@@ -352,6 +360,7 @@ export default {
       if (this.hasVR) {
         this.scene.add(this.vrUIcontainer)
         this.scene.add(this.vrButtonStartContainer)
+        this.scene.remove(this.vrFinText)
       }
       this.setOverviewPosition()
     },
@@ -375,8 +384,8 @@ export default {
       if (self.rollerCoasterMesh)
         self.scene.remove(self.rollerCoasterMesh)
 
-        if (self.rollerCoasterLifterMesh)
-          self.scene.remove(self.rollerCoasterLifterMesh)
+      if (self.rollerCoasterLifterMesh)
+        self.scene.remove(self.rollerCoasterLifterMesh)
 
       d3.csv(file).then(function(data) {
         self.src_data = data
@@ -409,7 +418,7 @@ export default {
         self.curve.tension = .8
         self.curve.curveType = "catmullrom"
         self.curveLength = self.curve.getLength()
-        self.max_velocity = 0.05 / self.curveLength
+        self.max_velocity = 0.08 / self.curveLength
         //console.log(self.curve.getLength());
 
         // roller coaster geometry
@@ -467,7 +476,8 @@ export default {
       if (self.hasVR) {
         self.vrUIcontainer.position.set( self.train.position.x, self.train.position.y + 0.9, self.train.position.z - 1.6);
         self.vrButtonStartContainer.position.set( self.train.position.x, self.train.position.y + 0.7, self.train.position.z - 1.6);
-        self.vrTitle.position.set( self.train.position.x, self.train.position.y + 1.16, self.train.position.z - 1.6);
+        self.vrTitle.position.set( self.train.position.x, self.train.position.y + 1.2, self.train.position.z - 1.6);
+      } else {
       }
     },
 
@@ -715,14 +725,17 @@ export default {
             self.hasVR = true
             self.renderer.xr.enabled = true;
             self.vrControl = VRControl( self.renderer, self.camera, self.scene );
-            self.scene.add( self.vrControl.controllerGrips[0], self.vrControl.controllers[0] );
-            self.vrControl.controllers[0].addEventListener('selectstart', () => { self.selectState = true } );
-            self.vrControl.controllers[0].addEventListener('selectend', () => { self.selectState = false } );
-            self.vrControl.controllers[1].addEventListener('selectstart', () => { self.selectState = true } );
-            self.vrControl.controllers[1].addEventListener('selectend', () => { self.selectState = false } );
-            self.train.add(self.vrControl.controllers[0])
-            self.train.add(self.vrControl.controllerGrips[0]);
+            //console.log(self.vrControl.controllers);
+            for (var i = 0; i < 1; i++) {
+              self.scene.add( self.vrControl.controllerGrips[i], self.vrControl.controllers[i])
+              self.vrControl.controllers[i].addEventListener('selectstart', () => { self.selectState = true })
+              self.vrControl.controllers[i].addEventListener('selectend', () => { self.selectState = false })
+              self.train.add(self.vrControl.controllers[i])
+              self.train.add(self.vrControl.controllerGrips[i])
+            }
             self.makeVRUIPanel()
+            if (this.vrUIoption && this.selected_option)
+              this.vrUIoption.set( { content: String( this.selected_option.name_plain || this.selected_option.name ) })
           }
         })
       } else {
@@ -770,9 +783,9 @@ export default {
           this.train.lookAt( this.lookAt.copy( this.position ).sub( this.tangent ) );
           if (this.hasVR) {
             this.vrFinText.rotation.copy(this.train.rotation)
-            this.vrFinText.position.set( this.position.x + 5 * (this.tangent.x), this.position.y + 5 * (this.tangent.y), this.position.z);
+            this.vrFinText.position.set( this.position.x + 3, this.position.y, this.position.z);
           }
-        }  else if (this.progress <= 1.1) {
+        }  else if (this.progress <= 1.15) {
           // do nothing
         } else if (this.progress) {
           this.startTime = performance.now()
@@ -798,7 +811,8 @@ export default {
 
       } else {
         ThreeMeshUI.update();
-        this.checkVRButtonIntersections();
+        if (this.vrControl)
+         this.checkVRButtonIntersections()
       }
 
       updateTweens()
@@ -834,7 +848,7 @@ export default {
         }
       }
       this.selected_option = this.options[index]
-      if (this.hasVRthis.vrUIoption && this.vrUIoption) {
+      if (this.hasVR && this.vrUIoption) {
         this.vrUIoption.set({ content: String( this.selected_option.name_plain || this.selected_option.name ) })
       }
       this.loadCurve(this.selected_option.file)
@@ -997,33 +1011,33 @@ export default {
 
 
     checkVRButtonIntersections () {
-    	let intersect;
-    	if ( this.renderer.xr.isPresenting ) {
-    		this.vrControl.setFromController(0, this.raycaster.ray );
-    		intersect = this.raycast();
-    		// Position the little white dot at the end of the controller pointing ray
-    		if ( intersect ) this.vrControl.setPointerAt( 0, intersect.point );
-    	} /*
-      else if ( this.mouse.x !== null && this.mouse.y !== null ) {
-    		this.raycaster.setFromCamera(this.mouse, this.camera);
-    		intersect = this.raycast();
-    	}; */
+        let intersect;
+        if (this.renderer.xr.isPresenting ) {
+          this.vrControl.setFromController(0, this.raycaster.ray );
+          intersect = this.raycast();
+          // Position the little white dot at the end of the controller pointing ray
+          if ( intersect ) this.vrControl.setPointerAt(0, intersect.point );
+        } /*
+        else if ( this.mouse.x !== null && this.mouse.y !== null ) {
+          this.raycaster.setFromCamera(this.mouse, this.camera);
+          intersect = this.raycast();
+        }; */
 
-    	if ( intersect && intersect.object.isUI ) {
-    		if ( this.selectState ) {
-    			intersect.object.setState( 'selected' );
-    		} else {
-    			intersect.object.setState( 'hovered' );
-    		};
-    	};
-    	// Update non-targeted buttons state
-    	if (this.objsToTest) {
-          this.objsToTest.forEach( (obj)=> {
-      		if ( (!intersect || obj !== intersect.object) && obj.isUI ) {
-      			obj.setState('idle')
-      		}
-      	})
-      }
+        if ( intersect && intersect.object.isUI ) {
+          if ( this.selectState ) {
+            intersect.object.setState( 'selected' );
+          } else {
+            intersect.object.setState( 'hovered' );
+          };
+        };
+        // Update non-targeted buttons state
+        if (this.objsToTest) {
+            this.objsToTest.forEach( (obj)=> {
+            if ( (!intersect || obj !== intersect.object) && obj.isUI ) {
+              obj.setState('idle')
+            }
+          })
+        }
     },
 
     raycast() {
