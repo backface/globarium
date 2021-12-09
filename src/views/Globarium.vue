@@ -19,7 +19,7 @@ export default {
     and the climate crisis.</p>
     <p>A work in progress by <a href="http://m.ash.to">Michael Aschauer</a>,<br />
     Sound: Gridshifter by <a href="http://www.sonotope.org/innode/innode-gridshifter/">Innode</a> <br />
-      <a href="http://fooviz.xyz">fooviz.xyz</a> &copy; 2019</p>
+      <a href="http://fooviz.xyz">fooviz.xyz</a> &copy; 2019/21</p>
   </div>
 
   <Globarium @run="hideIntro = true" />

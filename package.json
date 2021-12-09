@@ -5,7 +5,7 @@
     "dev": "vite --host --https",
     "build": "vite build",
     "serve": "vite preview",
-    "transfer": "rsync -avz --delete dist/ man:www/sherbrooke.backface.io",
+    "transfer": "rsync -avz dist/ man:www/globarium.fooviz.xyz",
     "deploy": "pnpm run build && pnpm run transfer"
   },
   "dependencies": {
