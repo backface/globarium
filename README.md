@@ -1,7 +1,10 @@
-# sherbrooke
+# Globarium
 
-sherbrook testlab
+A concave, hollow globe experiment Inspired by the Mapparium in Boston and the current climate crisis
+A WebXR Virtual Reality Application
 
-# Vue 3 + Vite
+see it live:
+https://globarium.fooviz.xyz/#/
 
-This template should help get you started developing with Vue 3 in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+
+made with vue 3, three.hs and vite
